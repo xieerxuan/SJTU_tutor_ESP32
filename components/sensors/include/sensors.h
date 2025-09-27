@@ -29,7 +29,8 @@ extern sensor_t sensors[];
 void init_proximity_switches(void);
 
 // 读取传感器状态
-uint8_t read_sensor_state(gpio_num_t pin);
+bool is_left_sensor_triggered();
+bool is_right_sensor_triggered();
 
 
 

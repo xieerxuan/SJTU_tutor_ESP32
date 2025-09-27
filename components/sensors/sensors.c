@@ -24,15 +24,12 @@ void init_proximity_switches() {
     }
 }
 
-// 读取传感器状态（带简易消抖）
-uint8_t read_sensor_state(gpio_num_t pin) {
-    uint8_t state = gpio_get_level(pin);
-    
-    // // 简易消抖处理
-    // if (state == 0) {
-    //     vTaskDelay(pdMS_TO_TICKS(10)); // 等待10ms
-    //     state = gpio_get_level(pin);   // 再次读取
-    // }
-    
-    return state;
+bool is_left_sensor_triggered(){
+    uint8_t state = gpio_get_level(SENSOR_L_GPIO);
+    return !state;  // state == 0 是触发
+}
+
+bool is_right_sensor_triggered(){
+    uint8_t state = gpio_get_level(SENSOR_R_GPIO);
+    return !state;
 }

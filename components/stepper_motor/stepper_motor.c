@@ -1,6 +1,6 @@
 #include "stepper_motor.h"
 
-static const char *TAG = "StepperMotor";
+// static const char *TAG = "StepperMotor";
 
 void init_stepper_motor(void)
 {    
@@ -31,47 +31,35 @@ void init_stepper_motor(void)
         .timer_sel = LEDC_TIMER,
         .intr_type = LEDC_INTR_DISABLE,
         .gpio_num = PWM_PIN,
-        .duty = 0, // 初始占空比为0
+        .duty = LEDC_DUTY, // 初始占空比为0
         .hpoint = 0
     };
     ledc_channel_config(&ledc_channel);
     
     // 初始化电机状态：禁用电机，设置方向，停止PWM
-    gpio_set_level(ENABLE_PIN, 1); // 禁用电机（根据驱动器逻辑，可能为高或低电平使能）
-    gpio_set_level(DIR_PIN, 0);    // 初始方向
-    ledc_set_duty(LEDC_MODE, LEDC_CHANNEL, 0);
-    ledc_update_duty(LEDC_MODE, LEDC_CHANNEL);
+    gpio_set_level(ENABLE_PIN, 0);          // 禁用电机
+    gpio_set_level(DIR_PIN, DIRECTION_R);    // 初始方向
 }
 
-void set_motor_direction(int direction){
-    if (direction == 1) {
-        gpio_set_level(DIR_PIN, 0); // 正转
-    } else if (direction == -1) {
-        gpio_set_level(DIR_PIN, 1); // 反转
-    }
+int set_motor_direction(int direction){
+    gpio_set_level(DIR_PIN, direction);
+    return direction;
 }
 
-void set_motor_speed(int rpm)
+int set_motor_speed(int rpm)
 {
     // 限制转速范围
     if (rpm > MAX_RPM) rpm = MAX_RPM;
     if (rpm < 0) rpm = -rpm;
     
     // 计算所需的PWM频率
-    uint32_t frequency = (rpm * STEPS_PER_REV) / 60;
+    uint32_t frequency = (rpm * STEPS_PER_REV) * MICRO_STEPS / 60;
 
     if (frequency == 0) {
-        // 停止电机
-        ledc_set_duty(LEDC_MODE, LEDC_CHANNEL, 0);
-        ledc_update_duty(LEDC_MODE, LEDC_CHANNEL);
-        gpio_set_level(ENABLE_PIN, 1); // 禁用电机
+        gpio_set_level(ENABLE_PIN, 0); // 禁用电机
     } else {
-        // 启用电机
-        gpio_set_level(ENABLE_PIN, 0); // 使能电机
-        
-        // 更新PWM频率和占空比
+        gpio_set_level(ENABLE_PIN, 1); // 使能电机
         ledc_set_freq(LEDC_MODE, LEDC_TIMER, frequency);
-        ledc_set_duty(LEDC_MODE, LEDC_CHANNEL, LEDC_DUTY);
-        ledc_update_duty(LEDC_MODE, LEDC_CHANNEL);
-    }    
+    }
+    return rpm;
 }
