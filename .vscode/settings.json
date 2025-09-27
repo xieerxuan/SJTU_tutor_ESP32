@@ -1,0 +1,12 @@
+{
+    "files.associations": {
+        "sensors.h": "c",
+        "stepper_motor.h": "c",
+        "gpio.h": "c",
+        "sdkconfig.h": "c",
+        "task.h": "c",
+        "freertos.h": "c"
+    },
+    "idf.flashType": "UART",
+    "idf.portWin": "COM5"
+}
