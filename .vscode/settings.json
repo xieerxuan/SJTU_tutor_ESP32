@@ -5,7 +5,9 @@
         "gpio.h": "c",
         "sdkconfig.h": "c",
         "task.h": "c",
-        "freertos.h": "c"
+        "freertos.h": "c",
+        "wifi.h": "c",
+        "sockets.h": "c"
     },
     "idf.flashType": "UART",
     "idf.portWin": "COM5"
