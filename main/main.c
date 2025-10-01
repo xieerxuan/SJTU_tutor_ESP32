@@ -10,7 +10,7 @@
 
 int current_dir = DIRECTION_R;
 int current_spd = 0;
-motor_state_t current_status = STATE_ACCELERATING;
+motor_state_t current_status = STATE_STOPPED;
 
 void app_main(void)
 {
@@ -20,8 +20,6 @@ void app_main(void)
 
     // 启动限位中断
     xTaskCreate(limits_isr_task, "limits_isr_task", 2048, NULL, 10, NULL);
-    // 启动WiFi事件处理任务
-    // xtaskCreate(wifi_event_task, "wifi_event_task", 4096, NULL, 5, NULL);
 
     while(1){
         state_switch_task();

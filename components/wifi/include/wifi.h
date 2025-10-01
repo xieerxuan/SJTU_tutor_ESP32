@@ -6,6 +6,7 @@
 #include "nvs_flash.h"
 #include "esp_log.h"
 #include "lwip/sockets.h"
+#include "state_manager.h"
 
 #define EXAMPLE_ESP_WIFI_SSID      "B118"
 #define EXAMPLE_ESP_WIFI_PASS      "lcme2018"

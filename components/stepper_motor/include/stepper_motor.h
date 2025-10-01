@@ -6,8 +6,8 @@
 
 // 电机参数定义
 #define STEPS_PER_REV        200     // 200步/圈 (1.8°步距角)
-#define MAX_RPM              600     // 最高转速600RPM
-#define MIN_RPM              60
+#define MAX_RPM              550     // 最高转速600RPM
+#define MIN_RPM              30
 
 #define MICRO_STEPS         8
 #define DIRECTION_R         0

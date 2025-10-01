@@ -1,38 +1,30 @@
 #include <stdio.h>
 #include "wifi.h"
+
+extern int current_dir;
+extern int current_spd;
+extern motor_state_t current_status;
+
 static int sock_listen = -1;
 static int sock_client = -1;
 static TaskHandle_t tcp_task_handle = NULL;
+static TaskHandle_t tcp_send_task_handle = NULL;
 
-// void tcp_send_task(void *pvParameters)
-// {
-//     const char *esp32_ip = "192.168.1.100";
-//     const int esp32_port = 3333;
-    
-//     while (1) {
-//         gui_command_t cmd;
-//         if (xQueueReceive(get_gui_command_queue(), &cmd, portMAX_DELAY) == pdPASS) {
-//             if (cmd == GUI_CMD_EXIT) {
-//                 break;
-//             }
-            
-//             const char *message = NULL;
-//             if (cmd == GUI_CMD_START) {
-//                 message = "start";
-//             } else if (cmd == GUI_CMD_STOP) {
-//                 message = "stop";
-//             }
-            
-//             if (message) {
-//                 // 这里添加TCP发送代码
-//                 printf("Sending command: %s to %s:%d\n", message, esp32_ip, esp32_port);
-//                 // send_tcp_command(esp32_ip, esp32_port, message);
-//             }
-//         }
-//     }
-    
-//     vTaskDelete(NULL);
-// }
+static QueueHandle_t tcp_command_queue = NULL;
+static SemaphoreHandle_t tcp_mutex = NULL;
+
+// 指令定义
+typedef enum {
+    CMD_UNKNOWN = 0,
+    CMD_START,
+    CMD_STOP,
+    CMD_ACCELARATE,
+    CMD_DECELARATE,
+} tcp_command_t;
+
+// 指令处理函数原型
+void tcp_process_command(const char* command);
+void tcp_send_data_task(void *pvParameters);
 
 void tcp_server_task(void *pvParameters) {
     ESP_LOGI("TCP", "Task started");
@@ -49,11 +41,14 @@ void tcp_server_task(void *pvParameters) {
         return;
     }
     
+    // 设置套接字选项，允许地址重用
+    int opt = 1;
+    setsockopt(sock_listen, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
+    
     // 绑定服务器地址和端口
     server_addr.sin_family = AF_INET;
-    server_addr.sin_port = htons(3333);  // 使用3333端口
+    server_addr.sin_port = htons(3333);
     server_addr.sin_addr.s_addr = INADDR_ANY;
-    ESP_LOGI("TCP", "Socket bound to port 3333");
     
     if (bind(sock_listen, (struct sockaddr *)&server_addr, sizeof(server_addr)) < 0) {
         ESP_LOGE("TCP", "Failed to bind");
@@ -61,6 +56,7 @@ void tcp_server_task(void *pvParameters) {
         vTaskDelete(NULL);
         return;
     }
+    ESP_LOGI("TCP", "Socket bound to port 3333");
     
     // 开始监听
     if (listen(sock_listen, 5) < 0) {
@@ -69,7 +65,6 @@ void tcp_server_task(void *pvParameters) {
         vTaskDelete(NULL);
         return;
     }
-    
     ESP_LOGI("TCP", "TCP server started on port 3333");
     
     while (1) {
@@ -83,6 +78,11 @@ void tcp_server_task(void *pvParameters) {
         
         ESP_LOGI("TCP", "Client connected: %s", inet_ntoa(client_addr.sin_addr));
         
+        // 创建数据发送任务
+        if (tcp_send_task_handle == NULL) {
+            xTaskCreate(tcp_send_data_task, "tcp_send", 4096, NULL, 4, &tcp_send_task_handle);
+        }
+        
         // 接收数据
         while (1) {
             recv_len = recv(sock_client, recv_buf, sizeof(recv_buf) - 1, 0);
@@ -91,23 +91,68 @@ void tcp_server_task(void *pvParameters) {
                 ESP_LOGI("TCP", "Client disconnected");
                 close(sock_client);
                 sock_client = -1;
+                
+                // 停止数据发送任务
+                if (tcp_send_task_handle != NULL) {
+                    vTaskDelete(tcp_send_task_handle);
+                    tcp_send_task_handle = NULL;
+                }
                 break;
             }
             
-            // 确保字符串以null结尾
             recv_buf[recv_len] = '\0';
-            
-            // 打印接收到的指令
             ESP_LOGI("TCP", "Received command: %s", recv_buf);
-            printf("Received: %s\n", recv_buf);
             
-            // 这里可以添加指令处理逻辑
-            // 例如：if (strcmp(recv_buf, "LED_ON") == 0) { ... }
-            
-            // 可选：发送响应
-            // send(sock_client, "OK", 2, 0);
+            // 处理指令（类似中断处理）
+            tcp_process_command(recv_buf);
         }
     }
+}
+
+// 指令处理函数
+void tcp_process_command(const char* command) {
+    tcp_command_t cmd = CMD_UNKNOWN;
+    
+    // 解析指令
+    if (strcmp(command, "START") == 0) {
+        if(current_spd != 0){
+            printf("电机已启动，当前转速：%d RPM\n", current_spd);
+        }
+        else{
+            cmd = CMD_START;
+            current_status = STATE_ACCELERATING;
+            printf("电机启动，开始加速...\n");
+        }
+    } 
+    else if (strcmp(command, "STOP") == 0) {
+        cmd = CMD_STOP;
+        current_status = STATE_STOPPED;
+        printf("电机停止...\n");
+    }
+    else{
+        printf("Invalid command received: %s\n", command);
+    }
+}
+
+// 数据发送任务
+void tcp_send_data_task(void *pvParameters) {
+    ESP_LOGI("TCP_SEND", "Data send task started");
+  
+    while (1) {
+        if (sock_client != -1) {
+            char data_msg[64];
+            snprintf(data_msg, sizeof(data_msg), "Current speed:%d\n", current_spd);
+            
+            if (send(sock_client, data_msg, strlen(data_msg), 0) < 0) {
+                ESP_LOGE("TCP_SEND", "Send failed");
+                break;
+            }
+        }
+        
+        // 每100ms发送一次数据
+        vTaskDelay(100 / portTICK_PERIOD_MS);
+    }
+    vTaskDelete(NULL);
 }
 
 void test_wifi_event_cb(void* event_handler_arg, esp_event_base_t event_base, int32_t event_id, void* event_data){
@@ -123,6 +168,7 @@ void test_wifi_event_cb(void* event_handler_arg, esp_event_base_t event_base, in
         
         // 获取IP后启动TCP服务器任务
         if (tcp_task_handle == NULL) {
+            printf("Starting TCP server task...\n");
             xTaskCreate(tcp_server_task, "tcp_server", 4096, NULL, 5, &tcp_task_handle);
         }
     }
