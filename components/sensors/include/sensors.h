@@ -7,6 +7,9 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 
+#include "state_manager.h"
+#include "stepper_motor.h"
+
 // 传感器配置
 #define SENSOR_L_GPIO       GPIO_NUM_2
 #define SENSOR_R_GPIO       GPIO_NUM_4
@@ -32,6 +35,6 @@ void init_proximity_switches(void);
 bool is_left_sensor_triggered();
 bool is_right_sensor_triggered();
 
-
+void limits_isr_task();
 
 #endif // SENSORS_H

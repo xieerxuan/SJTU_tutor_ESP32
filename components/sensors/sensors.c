@@ -1,5 +1,10 @@
-#include "sensors.h"
 #include <stdio.h>
+
+#include "sensors.h"
+
+extern int current_dir;
+extern int current_spd;
+extern motor_state_t current_status;
 
 // 初始化传感器数组
 sensor_t sensors[] = {
@@ -32,4 +37,40 @@ bool is_left_sensor_triggered(){
 bool is_right_sensor_triggered(){
     uint8_t state = gpio_get_level(SENSOR_R_GPIO);
     return !state;
+}
+
+void limits_isr_task(){
+    while(1){
+        if(is_left_sensor_triggered() && is_right_sensor_triggered()){
+            printf("左右限位同时触发，存在干扰！\n");
+            current_status = STATE_STOPPED;
+            vTaskDelay(pdMS_TO_TICKS(500));
+        }
+        else if(is_left_sensor_triggered()){
+            // printf("左限位触发\n");
+            if(current_dir == DIRECTION_L){
+                current_status = STATE_STOPPED;
+                current_dir = DIRECTION_R;
+                set_motor_direction(current_dir);
+                vTaskDelay(pdMS_TO_TICKS(100));
+            }
+            else if(current_spd == 0){  // 转换方向后加速
+                current_status = STATE_ACCELERATING;
+                vTaskDelay(pdMS_TO_TICKS(500));
+            }
+        }
+        else if(is_right_sensor_triggered()){
+            // printf("右限位触发\n");
+            if(current_dir == DIRECTION_R){
+                current_status = STATE_STOPPED;
+                current_dir = DIRECTION_L;
+                set_motor_direction(current_dir);
+                vTaskDelay(pdMS_TO_TICKS(100));
+            }
+            else if(current_spd == 0){  // 转换方向后加速
+                current_status = STATE_ACCELERATING;
+                vTaskDelay(pdMS_TO_TICKS(500));
+            }
+        }
+    }
 }

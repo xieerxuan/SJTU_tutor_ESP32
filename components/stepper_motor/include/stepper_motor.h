@@ -7,6 +7,7 @@
 // 电机参数定义
 #define STEPS_PER_REV        200     // 200步/圈 (1.8°步距角)
 #define MAX_RPM              600     // 最高转速600RPM
+#define MIN_RPM              60
 
 #define MICRO_STEPS         8
 #define DIRECTION_R         0
@@ -27,8 +28,8 @@
 
 void init_stepper_motor(void);
 
-int set_motor_direction(int direction);
+void set_motor_direction(int direction);
 
-int set_motor_speed(int rpm);  // rpm>0
+void set_motor_speed(int rpm);  // rpm>0
 
 #endif

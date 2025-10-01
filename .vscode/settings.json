@@ -7,7 +7,9 @@
         "task.h": "c",
         "freertos.h": "c",
         "wifi.h": "c",
-        "sockets.h": "c"
+        "sockets.h": "c",
+        "esp_wifi.h": "c",
+        "stdio.h": "c"
     },
     "idf.flashType": "UART",
     "idf.portWin": "COM5"

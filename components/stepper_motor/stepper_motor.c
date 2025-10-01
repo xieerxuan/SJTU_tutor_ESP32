@@ -2,6 +2,9 @@
 
 // static const char *TAG = "StepperMotor";
 
+extern int current_dir;
+extern int current_spd;
+
 void init_stepper_motor(void)
 {    
     // 配置GPIO
@@ -31,7 +34,7 @@ void init_stepper_motor(void)
         .timer_sel = LEDC_TIMER,
         .intr_type = LEDC_INTR_DISABLE,
         .gpio_num = PWM_PIN,
-        .duty = LEDC_DUTY, // 初始占空比为0
+        .duty = LEDC_DUTY,
         .hpoint = 0
     };
     ledc_channel_config(&ledc_channel);
@@ -41,12 +44,11 @@ void init_stepper_motor(void)
     gpio_set_level(DIR_PIN, DIRECTION_R);    // 初始方向
 }
 
-int set_motor_direction(int direction){
+void set_motor_direction(int direction){
     gpio_set_level(DIR_PIN, direction);
-    return direction;
 }
 
-int set_motor_speed(int rpm)
+void set_motor_speed(int rpm)
 {
     // 限制转速范围
     if (rpm > MAX_RPM) rpm = MAX_RPM;
@@ -61,5 +63,4 @@ int set_motor_speed(int rpm)
         gpio_set_level(ENABLE_PIN, 1); // 使能电机
         ledc_set_freq(LEDC_MODE, LEDC_TIMER, frequency);
     }
-    return rpm;
 }
