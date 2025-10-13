@@ -48,7 +48,7 @@ void set_motor_direction(int direction){
     gpio_set_level(DIR_PIN, direction);
 }
 
-void set_motor_speed(int rpm)
+int set_motor_speed(int rpm)
 {
     // 限制转速范围
     if (rpm > MAX_RPM) rpm = MAX_RPM;
@@ -63,4 +63,5 @@ void set_motor_speed(int rpm)
         gpio_set_level(ENABLE_PIN, 1); // 使能电机
         ledc_set_freq(LEDC_MODE, LEDC_TIMER, frequency);
     }
+    return rpm;
 }

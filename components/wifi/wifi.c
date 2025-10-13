@@ -3,15 +3,16 @@
 
 extern int current_dir;
 extern int current_spd;
+extern int target_spd;
 extern motor_state_t current_status;
 
 static int sock_listen = -1;
 static int sock_client = -1;
 static TaskHandle_t tcp_task_handle = NULL;
 static TaskHandle_t tcp_send_task_handle = NULL;
+static TaskHandle_t tcp_recv_cmd_task_handle = NULL;
 
 static QueueHandle_t tcp_command_queue = NULL;
-static SemaphoreHandle_t tcp_mutex = NULL;
 
 // 指令定义
 typedef enum {
@@ -23,8 +24,9 @@ typedef enum {
 } tcp_command_t;
 
 // 指令处理函数原型
-void tcp_process_command(const char* command);
 void tcp_send_data_task(void *pvParameters);
+void tcp_recv_cmd_task(void *pvParameters);
+void tcp_process_command(tcp_command_t cmd);
 
 void tcp_server_task(void *pvParameters) {
     ESP_LOGI("TCP", "Task started");
@@ -80,14 +82,14 @@ void tcp_server_task(void *pvParameters) {
         
         // 创建数据发送任务
         if (tcp_send_task_handle == NULL) {
-            xTaskCreate(tcp_send_data_task, "tcp_send", 4096, NULL, 4, &tcp_send_task_handle);
+            xTaskCreate(tcp_send_data_task, "tcp_send", 4096, NULL, 1, &tcp_send_task_handle);  
         }
         
         // 接收数据
         while (1) {
-            recv_len = recv(sock_client, recv_buf, sizeof(recv_buf) - 1, 0);
+            recv_len = recv(sock_client, recv_buf, sizeof(recv_buf) - 1, 0);    // 如果上位机没有发送数据，recv 会阻塞
             
-            if (recv_len <= 0) {
+            if (recv_len <= 0) {    // 客户端已经断开连接或发生了错误
                 ESP_LOGI("TCP", "Client disconnected");
                 close(sock_client);
                 sock_client = -1;
@@ -103,34 +105,69 @@ void tcp_server_task(void *pvParameters) {
             recv_buf[recv_len] = '\0';
             ESP_LOGI("TCP", "Received command: %s", recv_buf);
             
-            // 处理指令（类似中断处理）
-            tcp_process_command(recv_buf);
+            // 解析指令并发送到队列
+            tcp_command_t cmd = CMD_UNKNOWN;
+            if (strcmp(recv_buf, "START") == 0) {
+                cmd = CMD_START;
+            } else if (strcmp(recv_buf, "STOP") == 0) {
+                cmd = CMD_STOP;
+            } else if (strcmp(recv_buf, "ACCELARATE") == 0) {
+                cmd = CMD_ACCELARATE;
+            } else if (strcmp(recv_buf, "DECELARATE") == 0) {
+                cmd = CMD_DECELARATE;
+            }
+
+            if (cmd != CMD_UNKNOWN) {
+                if (xQueueSend(tcp_command_queue, &cmd, 0) != pdPASS) {
+                    ESP_LOGE("TCP", "Failed to send command to queue");
+                }
+            } else {
+                ESP_LOGE("TCP", "Unknown command received: %s", recv_buf);
+            }
+            vTaskDelay(pdMS_TO_TICKS(50));
         }
     }
 }
 
-// 指令处理函数
-void tcp_process_command(const char* command) {
-    tcp_command_t cmd = CMD_UNKNOWN;
-    
-    // 解析指令
-    if (strcmp(command, "START") == 0) {
-        if(current_spd != 0){
-            printf("电机已启动，当前转速：%d RPM\n", current_spd);
+
+void tcp_recv_cmd_task(void *pvParameters){
+    tcp_command_t current_cmd;
+
+    while (1) {
+        if (xQueueReceive(tcp_command_queue, &current_cmd, portMAX_DELAY) == pdPASS) {
+            tcp_process_command(current_cmd);
         }
-        else{
-            cmd = CMD_START;
-            current_status = STATE_ACCELERATING;
-            printf("电机启动，开始加速...\n");
-        }
-    } 
-    else if (strcmp(command, "STOP") == 0) {
-        cmd = CMD_STOP;
-        current_status = STATE_STOPPED;
-        printf("电机停止...\n");
     }
-    else{
-        printf("Invalid command received: %s\n", command);
+}
+// 指令处理函数
+void tcp_process_command(tcp_command_t cmd) {    
+    switch (cmd) {
+        case CMD_START:
+            if (current_spd != 0) {
+                printf("电机已启动，当前转速：%d RPM\n", current_spd);
+            } else {
+                current_status = STATE_ACCELERATING;
+                target_spd = MAX_RPM;
+                printf("电机启动，开始加速...\n");
+            }
+            break;
+
+        case CMD_STOP:
+            current_status = STATE_STOPPED;
+            printf("电机停止...\n");
+            break;
+
+        case CMD_ACCELARATE:
+            // TODO
+            break;
+
+        case CMD_DECELARATE:
+            // TODO
+            break;
+
+        default:
+            printf("Invalid command received\n");
+            break;
     }
 }
 
@@ -169,13 +206,16 @@ void test_wifi_event_cb(void* event_handler_arg, esp_event_base_t event_base, in
         // 获取IP后启动TCP服务器任务
         if (tcp_task_handle == NULL) {
             printf("Starting TCP server task...\n");
-            xTaskCreate(tcp_server_task, "tcp_server", 4096, NULL, 5, &tcp_task_handle);
+            xTaskCreate(tcp_server_task, "tcp_server", 4096, NULL, 3, &tcp_task_handle);
         }
     }
 };
 
 void init_wifi(void)
 {
+    tcp_command_queue = xQueueCreate(10, sizeof(tcp_command_t));
+    xTaskCreate(tcp_recv_cmd_task, "motor_command", 4096, NULL, 2, &tcp_recv_cmd_task_handle);
+
     // 初始化
     nvs_flash_init();   // FLash用于持久保存配置信息​​，如WiFi名称和密码
     esp_netif_init();   // 提供了一个​​统一的接口​​来管理和配置不同类型的物理或虚拟网络接口

@@ -4,6 +4,7 @@
 
 extern int current_dir;
 extern int current_spd;
+extern int target_spd;
 extern motor_state_t current_status;
 
 // 初始化传感器数组
@@ -14,19 +15,35 @@ sensor_t sensors[] = {
 };
 const int sensor_count = sizeof(sensors) / sizeof(sensors[0]);
 
+// 创建事件组
+EventGroupHandle_t sensor_event_group;
+// 定义事件标志位
+#define L_LIMIT_BIT (1 << 0)
+#define R_LIMIT_BIT (1 << 1)
 
-// 创建队列用于中断与任务间通信
-QueueHandle_t sensor_queue = NULL;
 
-static void IRAM_ATTR sensor_isr_handler(void* arg) {
-    int gpio_num = (int)arg;
-    xQueueSendFromISR(sensor_queue, &gpio_num, NULL);    // 发送GPIO号到队列
+// 左右限位中断处理函数
+static void IRAM_ATTR left_sensor_isr_handler(void* arg) {
+    BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+    xEventGroupSetBitsFromISR(sensor_event_group, L_LIMIT_BIT, &xHigherPriorityTaskWoken);
+    
+    if (xHigherPriorityTaskWoken) {
+        portYIELD_FROM_ISR();
+    }
 }
 
+static void IRAM_ATTR right_sensor_isr_handler(void* arg) {
+    BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+    xEventGroupSetBitsFromISR(sensor_event_group, R_LIMIT_BIT, &xHigherPriorityTaskWoken);
+    
+    if (xHigherPriorityTaskWoken) {
+        portYIELD_FROM_ISR();
+    }
+}
 
 // 初始化所有传感器
 void init_proximity_switches() {
-    sensor_queue = xQueueCreate(10, sizeof(int));
+    sensor_event_group = xEventGroupCreate();  // 创建事件组
     gpio_install_isr_service(0);  // 安装中断服务
 
     for (int i = 0; i < sensor_count; i++) {
@@ -38,7 +55,13 @@ void init_proximity_switches() {
             .intr_type = GPIO_INTR_NEGEDGE  // 下降沿触发
         };
         gpio_config(&io_conf);
-        gpio_isr_handler_add(sensors[i].gpio, sensor_isr_handler, (void*)sensors[i].gpio); // 两个传感器注册到同一个中断处理函数
+
+         // 为左右限位分别注册不同的中断处理函数
+        if (sensors[i].gpio == SENSOR_L_GPIO) {
+            gpio_isr_handler_add(sensors[i].gpio, left_sensor_isr_handler, (void*)sensors[i].gpio);
+        } else if (sensors[i].gpio == SENSOR_R_GPIO) {
+            gpio_isr_handler_add(sensors[i].gpio, right_sensor_isr_handler, (void*)sensors[i].gpio);
+        }
     }
 }
 
@@ -52,45 +75,51 @@ bool is_right_sensor_triggered(){
     return !state;
 }
 
-void limits_isr_task(){
-    int gpio_num;
-    while(1){
-        // 等待队列中的中断事件
-        if(xQueueReceive(sensor_queue, &gpio_num, portMAX_DELAY)){
+void sensor_trigger_task(void* pvParameters) {
+    EventBits_t event_bits;
+    
+    while(1) {
+        // 等待任意一个限位触发事件（左或右）
+        event_bits = xEventGroupWaitBits(
+            sensor_event_group,
+            L_LIMIT_BIT | R_LIMIT_BIT,
+            pdTRUE,   // 自动清除事件位
+            pdFALSE,  // 任意一个触发
+            portMAX_DELAY
+        );
+        
+        if ((event_bits & (L_LIMIT_BIT | R_LIMIT_BIT)) == (L_LIMIT_BIT | R_LIMIT_BIT)){
+            current_status = STATE_STOPPED;
+            printf("左右限位同时触发，存在干扰！\n");
+        }
+        else if(event_bits & L_LIMIT_BIT) {
+            current_status = STATE_LIMIT_STOPPED;
+            current_dir = DIRECTION_R;
+            target_spd = 0;
+            current_spd = set_motor_speed(target_spd);
+            set_motor_direction(current_dir);
+            
+            vTaskDelay(pdMS_TO_TICKS(1000)); // 停止1s
 
-            vTaskDelay(pdMS_TO_TICKS(50));
-            
-            bool left_triggered = is_left_sensor_triggered();
-            bool right_triggered = is_right_sensor_triggered();
-            
-            if(left_triggered && right_triggered) {
-                printf("左右限位同时触发，存在干扰！\n");
-                current_status = STATE_STOPPED;
-            }
-            else if(left_triggered) {
-                printf("左限位触发\n");
-                if(current_dir == DIRECTION_L) {
-                    current_status = STATE_STOPPED;
-                    current_dir = DIRECTION_R;
-                    set_motor_speed(0);
-                    set_motor_direction(current_dir);
-                    
-                    vTaskDelay(pdMS_TO_TICKS(1000)); // 停止1s
-                    current_status = STATE_ACCELERATING;
-                }
-            }
-            else if(right_triggered) {
-                printf("右限位触发\n");
-                if(current_dir == DIRECTION_R) {
-                    current_status = STATE_STOPPED;
-                    current_dir = DIRECTION_L;
-                    set_motor_speed(0);
-                    set_motor_direction(current_dir);
-                    
-                    vTaskDelay(pdMS_TO_TICKS(1000)); // 停止1s
-                    current_status = STATE_ACCELERATING;
-                }
+            if(current_status == STATE_LIMIT_STOPPED) {
+                target_spd = MAX_RPM;
+                current_status = STATE_ACCELERATING;
             }
         }
+        else if(event_bits & R_LIMIT_BIT) {
+            current_status = STATE_LIMIT_STOPPED;
+            current_dir = DIRECTION_L;
+            target_spd = 0;
+            current_spd = set_motor_speed(target_spd);
+            set_motor_direction(current_dir);
+            
+            vTaskDelay(pdMS_TO_TICKS(1000)); // 停止1s
+
+            if(current_status == STATE_LIMIT_STOPPED) {
+                target_spd = MAX_RPM;
+                current_status = STATE_ACCELERATING;
+            }
+        }
+        vTaskDelay(pdMS_TO_TICKS(50));
     }
 }

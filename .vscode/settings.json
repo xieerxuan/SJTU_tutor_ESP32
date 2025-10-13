@@ -9,7 +9,13 @@
         "wifi.h": "c",
         "sockets.h": "c",
         "esp_wifi.h": "c",
-        "stdio.h": "c"
+        "stdio.h": "c",
+        "state_manager.h": "c",
+        "ledc.h": "c",
+        "event_groups.h": "c",
+        "queue.h": "c",
+        "nvs_flash.h": "c",
+        "stdint.h": "c"
     },
     "idf.flashType": "UART",
     "idf.portWin": "COM5"

@@ -6,7 +6,7 @@
 #include "driver/gpio.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
-#include "freertos/queue.h"
+#include "freertos/event_groups.h"
 
 #include "state_manager.h"
 #include "stepper_motor.h"
@@ -14,7 +14,6 @@
 // 传感器配置
 #define SENSOR_L_GPIO       GPIO_NUM_2
 #define SENSOR_R_GPIO       GPIO_NUM_4
-// #define SENSOR_M_GPIO       GPIO_NUM_5
 
 // 传感器状态结构体
 typedef struct {
@@ -36,6 +35,6 @@ void init_proximity_switches(void);
 bool is_left_sensor_triggered();
 bool is_right_sensor_triggered();
 
-void limits_isr_task();
+void sensor_trigger_task(void* pvParameters);
 
 #endif // SENSORS_H
