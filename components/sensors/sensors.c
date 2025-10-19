@@ -93,27 +93,29 @@ void sensor_trigger_task(void* pvParameters) {
             printf("左右限位同时触发，存在干扰！\n");
         }
         else if(event_bits & L_LIMIT_BIT) {
+            // printf("左限位触发！\n");
             current_status = STATE_LIMIT_STOPPED;
             current_dir = DIRECTION_R;
             target_spd = 0;
             current_spd = set_motor_speed(target_spd);
             set_motor_direction(current_dir);
             
-            vTaskDelay(pdMS_TO_TICKS(1000)); // 停止1s
+            // vTaskDelay(pdMS_TO_TICKS(1000)); // 停止1s
 
             if(current_status == STATE_LIMIT_STOPPED) {
                 target_spd = MAX_RPM;
                 current_status = STATE_ACCELERATING;
             }
         }
-        else if(event_bits & R_LIMIT_BIT) {
+        else if(event_bits & R_LIMIT_BIT) {            
+            // printf("右限位触发！\n");
             current_status = STATE_LIMIT_STOPPED;
             current_dir = DIRECTION_L;
             target_spd = 0;
             current_spd = set_motor_speed(target_spd);
             set_motor_direction(current_dir);
             
-            vTaskDelay(pdMS_TO_TICKS(1000)); // 停止1s
+            // vTaskDelay(pdMS_TO_TICKS(1000)); // 停止1s
 
             if(current_status == STATE_LIMIT_STOPPED) {
                 target_spd = MAX_RPM;

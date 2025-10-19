@@ -230,7 +230,7 @@ class MainWindow(QMainWindow):
         connection_layout = QGridLayout()
         
         connection_layout.addWidget(QLabel("IP Address:"), 0, 0)
-        self.ip_edit = QLineEdit("192.168.1.101") 
+        self.ip_edit = QLineEdit("192.168.1.116") 
         connection_layout.addWidget(self.ip_edit, 0, 1)
         
         connection_layout.addWidget(QLabel("Port:"), 1, 0)
