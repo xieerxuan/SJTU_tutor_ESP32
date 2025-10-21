@@ -29,5 +29,5 @@
         "stdbool.h": "c"
     },
     "idf.flashType": "UART",
-    "idf.portWin": "COM6"
+    "idf.portWin": "COM21"
 }

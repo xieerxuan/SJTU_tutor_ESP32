@@ -5,6 +5,7 @@ extern int current_dir;
 extern int current_spd;
 extern int target_spd;
 extern motor_state_t current_status;
+extern SemaphoreHandle_t mutexHandle;
 
 static int sock_listen = -1;
 static int sock_client = -1;
@@ -146,14 +147,20 @@ void tcp_process_command(tcp_command_t cmd) {
             if (current_spd != 0) {
                 printf("电机已启动，当前转速：%d RPM\n", current_spd);
             } else {
-                current_status = STATE_ACCELERATING;
-                target_spd = MAX_RPM;
+                if(xSemaphoreTake(mutexHandle, portMAX_DELAY) == pdTRUE){
+                    current_status = STATE_ACCELERATING;
+                    target_spd = MAX_RPM;
+                    xSemaphoreGive(mutexHandle);
+                }
                 printf("电机启动，开始加速...\n");
             }
             break;
 
         case CMD_STOP:
-            current_status = STATE_STOPPED;
+            if(xSemaphoreTake(mutexHandle, portMAX_DELAY) == pdTRUE){
+                current_status = STATE_STOPPED;
+                xSemaphoreGive(mutexHandle);
+            }
             printf("电机停止...\n");
             break;
 

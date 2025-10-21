@@ -12,10 +12,13 @@ int current_dir = DIRECTION_R;
 int current_spd = 0;
 int target_spd = 0;
 motor_state_t current_status = STATE_STOPPED;
+SemaphoreHandle_t mutexHandle;
 
 
 void app_main(void)
 {
+    mutexHandle = xSemaphoreCreateMutex();
+    
     init_stepper_motor();
     init_proximity_switches();      // 注册了限位中断
     init_wifi();        // 启动了TCP发送数据（优先级1）和接收指令（优先级2）任务
