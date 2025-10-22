@@ -30,34 +30,8 @@ void state_switch_task(void *pvParameters)
                 break;
             case STATE_ACCELERATING:
                 // printf("加速中，当前转速：%d RPM\n", current_spd);
-                if(target_spd > MAX_RPM || target_spd < MIN_RPM){
-                    printf("目标转速 %d RPM 超出范围\n", target_spd);
-                    break;
-                }
-
-                int diff_spd = target_spd - current_spd;
-                if(diff_spd < 5 && diff_spd > -5){
-                    if(xSemaphoreTake(mutexHandle, portMAX_DELAY) == pdTRUE){ 
-                        current_spd = set_motor_speed(target_spd);
-                        current_status = STATE_CRUISING;
-                        xSemaphoreGive(mutexHandle);
-                    }
-                    break;
-                }
-                else if(diff_spd > 0){
-                    if(xSemaphoreTake(mutexHandle, portMAX_DELAY) == pdTRUE){ 
-                        current_spd = set_motor_speed(current_spd + 5);
-                        xSemaphoreGive(mutexHandle);
-                    }
-                    break;
-                }
-                else{
-                    if(xSemaphoreTake(mutexHandle, portMAX_DELAY) == pdTRUE){ 
-                        current_spd = set_motor_speed(current_spd - 5);
-                        xSemaphoreGive(mutexHandle);
-                    }
-                    break;
-                }
+                /* TODO */
+                /* 在此处实现电机加速功能 */
             default:
                 break;
         }

@@ -107,23 +107,8 @@ void tcp_server_task(void *pvParameters) {
             
             // 解析指令并发送到队列
             tcp_command_t cmd = CMD_UNKNOWN;
-            if (strcmp(recv_buf, "START") == 0) {
-                cmd = CMD_START;
-            } else if (strcmp(recv_buf, "STOP") == 0) {
-                cmd = CMD_STOP;
-            } else if (strcmp(recv_buf, "ACCELARATE") == 0) {
-                cmd = CMD_ACCELARATE;
-            } else if (strcmp(recv_buf, "DECELARATE") == 0) {
-                cmd = CMD_DECELARATE;
-            }
-
-            if (cmd != CMD_UNKNOWN) {
-                if (xQueueSend(tcp_command_queue, &cmd, 0) != pdPASS) {
-                    ESP_LOGE("TCP", "Failed to send command to queue");
-                }
-            } else {
-                ESP_LOGE("TCP", "Unknown command received: %s", recv_buf);
-            }
+            /* TODO */
+            /* 使用定义好的枚举 tcp_command_t 进行指令解析，并发送到队列与指令执行任务通信 */
             vTaskDelay(pdMS_TO_TICKS(50));
         }
     }

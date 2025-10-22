@@ -48,18 +48,11 @@ void set_motor_direction(int direction){
 
 int set_motor_speed(int rpm)
 {
-    // 限制转速范围
-    if (rpm > MAX_RPM) rpm = MAX_RPM;
-    if (rpm < 0) rpm = -rpm;
-    
-    // 计算所需的PWM频率
-    uint32_t frequency = (rpm * STEPS_PER_REV) * MICRO_STEPS / 60;
+    /* TODO */
+    /* 
+        在此处实现电机速度的设置，注意此函数的调用方式；
+        ledc_set_freq() 函数可以用来设置PWM频率，从而控制电机速度，详见官方文档。
+     */
 
-    if (frequency == 0) {
-        gpio_set_level(ENABLE_PIN, 0); // 禁用电机
-    } else {
-        gpio_set_level(ENABLE_PIN, 1); // 使能电机
-        ledc_set_freq(LEDC_MODE, LEDC_TIMER, frequency);
-    }
     return rpm;
 }

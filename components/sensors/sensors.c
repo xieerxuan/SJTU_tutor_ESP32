@@ -87,51 +87,8 @@ void sensor_trigger_task(void* pvParameters) {
             portMAX_DELAY
         );
         
-        if ((event_bits & (L_LIMIT_BIT | R_LIMIT_BIT)) == (L_LIMIT_BIT | R_LIMIT_BIT)){
-            if(xSemaphoreTake(mutexHandle, portMAX_DELAY) == pdTRUE){
-                current_status = STATE_STOPPED;
-                xSemaphoreGive(mutexHandle);
-            }   
-            printf("左右限位同时触发，存在干扰！\n");
-        }
-        else if(event_bits & L_LIMIT_BIT) {
-            // printf("左限位触发！\n");
-            if(xSemaphoreTake(mutexHandle, portMAX_DELAY) == pdTRUE){
-                current_status = STATE_LIMIT_STOPPED;
-                current_dir = DIRECTION_R;
-                target_spd = 0;
-                xSemaphoreGive(mutexHandle);
-            }          
-            current_spd = set_motor_speed(target_spd);
-            set_motor_direction(current_dir);
+        /* TODO */
+        /* 在此处实现限位触发时的处理逻辑，要求见实验指导书 */
 
-            if(current_status == STATE_LIMIT_STOPPED) {
-                if(xSemaphoreTake(mutexHandle, portMAX_DELAY) == pdTRUE){
-                    target_spd = MAX_RPM;
-                    current_status = STATE_ACCELERATING;
-                    xSemaphoreGive(mutexHandle);
-                }
-            }
-        }
-        else if(event_bits & R_LIMIT_BIT) {            
-            // printf("右限位触发！\n");
-            if(xSemaphoreTake(mutexHandle, portMAX_DELAY) == pdTRUE){
-                current_status = STATE_LIMIT_STOPPED;
-                current_dir = DIRECTION_L;
-                target_spd = 0;
-                xSemaphoreGive(mutexHandle);
-            }                      
-            current_spd = set_motor_speed(target_spd);
-            set_motor_direction(current_dir);
-
-            if(current_status == STATE_LIMIT_STOPPED) {
-                if(xSemaphoreTake(mutexHandle, portMAX_DELAY) == pdTRUE){
-                    target_spd = MAX_RPM;
-                    current_status = STATE_ACCELERATING;
-                    xSemaphoreGive(mutexHandle);
-                }
-            }
-        }
-        vTaskDelay(pdMS_TO_TICKS(50));
-    }
+    }    
 }
