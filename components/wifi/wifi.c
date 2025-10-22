@@ -24,7 +24,6 @@ typedef enum {
     CMD_DECELARATE,
 } tcp_command_t;
 
-// 指令处理函数原型
 void tcp_send_data_task(void *pvParameters);
 void tcp_recv_cmd_task(void *pvParameters);
 void tcp_process_command(tcp_command_t cmd);

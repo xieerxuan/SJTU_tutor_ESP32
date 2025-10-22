@@ -12,4 +12,4 @@ def send_command(ip, command):
         print("Error:", e)
 
 # 使用示例
-send_command("192.168.1.101", "gfdh")
+send_command("192.168.1.101", "start")  # stop, reset

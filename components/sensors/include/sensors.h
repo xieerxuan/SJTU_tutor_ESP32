@@ -22,19 +22,9 @@ typedef struct {
     volatile bool last_state;
 } sensor_t;
 
-// 传感器数量
-extern const int sensor_count;
-
-// 传感器数组
-extern sensor_t sensors[];
-
 // 初始化函数
 void init_proximity_switches(void);
-
-// 读取传感器状态
-bool is_left_sensor_triggered();
-bool is_right_sensor_triggered();
-
+// 中断处理任务
 void sensor_trigger_task(void* pvParameters);
 
 #endif // SENSORS_H

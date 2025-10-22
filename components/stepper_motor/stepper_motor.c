@@ -1,7 +1,5 @@
 #include "stepper_motor.h"
 
-// static const char *TAG = "StepperMotor";
-
 extern int current_dir;
 extern int current_spd;
 
