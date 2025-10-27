@@ -50,9 +50,12 @@ int set_motor_speed(int rpm)
 {
     /* TODO */
     /* 
-        在此处实现电机速度的设置，注意此函数的调用方式；
-        ledc_set_freq() 函数可以用来设置PWM频率，从而控制电机速度，详见官方文档。
-     */
+    Tips：
+        1. 在此处实现电机速度的设置，返回传入的转速，此函数规范的调用方式应为 “current_spd = set_motor_speed(your_target_speed)” ；
+        2. 通过计算得到对应的PWM频率，计算公式为 f = (rpm × 每转步数) × 细分步数 / 60（相关参数宏定义在stepper_motor.h中，注意与硬件保持一致）；
+        3. 注意，当转速设置为0时，应禁用电机以防止短路发热；
+        4. ledc_set_freq() 函数可以用来设置PWM频率，从而控制电机速度，详见官方文档。
+    */
 
     return rpm;
 }

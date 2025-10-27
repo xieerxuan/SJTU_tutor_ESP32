@@ -20,8 +20,6 @@ typedef enum {
     CMD_UNKNOWN = 0,
     CMD_START,
     CMD_STOP,
-    CMD_ACCELARATE,
-    CMD_DECELARATE,
 } tcp_command_t;
 
 void tcp_send_data_task(void *pvParameters);
@@ -108,7 +106,11 @@ void tcp_server_task(void *pvParameters) {
             // 解析指令并发送到队列
             tcp_command_t cmd = CMD_UNKNOWN;
             /* TODO */
-            /* 使用定义好的枚举 tcp_command_t 进行指令解析，并发送到队列与指令执行任务通信 */
+            /* 
+            Tips：
+                1. 使用定义好的枚举 tcp_command_t 进行指令解析，并发送到队列与指令执行任务通信；
+                2. 可以使用 strcmp() 函数进行字符串比较，使用 xQueueSend() 函数发送队列消息；
+            */
             vTaskDelay(pdMS_TO_TICKS(50));
         }
     }
@@ -146,14 +148,6 @@ void tcp_process_command(tcp_command_t cmd) {
                 xSemaphoreGive(mutexHandle);
             }
             printf("电机停止...\n");
-            break;
-
-        case CMD_ACCELARATE:
-            // TODO
-            break;
-
-        case CMD_DECELARATE:
-            // TODO
             break;
 
         default:

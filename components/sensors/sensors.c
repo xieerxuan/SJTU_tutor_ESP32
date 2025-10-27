@@ -64,15 +64,15 @@ void init_proximity_switches() {
     }
 }
 
-bool is_left_sensor_triggered(){
-    uint8_t state = gpio_get_level(SENSOR_L_GPIO);
-    return !state;  // state == 0 是触发
-}
+// bool is_left_sensor_triggered(){
+//     uint8_t state = gpio_get_level(SENSOR_L_GPIO);
+//     return !state;  // state == 0 是触发
+// }
 
-bool is_right_sensor_triggered(){
-    uint8_t state = gpio_get_level(SENSOR_R_GPIO);
-    return !state;
-}
+// bool is_right_sensor_triggered(){
+//     uint8_t state = gpio_get_level(SENSOR_R_GPIO);
+//     return !state;
+// }
 
 void sensor_trigger_task(void* pvParameters) {
     EventBits_t event_bits;
@@ -88,7 +88,14 @@ void sensor_trigger_task(void* pvParameters) {
         );
         
         /* TODO */
-        /* 在此处实现限位触发时的处理逻辑，要求见实验指导书 */
+        /*
+        Tips： 
+            1. 在此处实现限位触发时的处理逻辑，要求见实验指导书；
+            2. 使用 event_bits & L_LIMIT_BIT 和 event_bits & R_LIMIT_BIT 来判断是哪个限位被触发；
+            3. 注意在处理限位触发时要检查当前电机状态和方向，防止错误操作；
+            4. 使用 mutexHandle 来保护对共享变量的访问；
+            5. 限位传感器在未上电时可能处于触发状态。
+        */
 
     }    
 }

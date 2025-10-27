@@ -31,7 +31,12 @@ void state_switch_task(void *pvParameters)
             case STATE_ACCELERATING:
                 // printf("加速中，当前转速：%d RPM\n", current_spd);
                 /* TODO */
-                /* 在此处实现电机加速功能 */
+                /* 
+                Tips：
+                    1. 在此处实现电机加速功能；
+                    2. 参考思路：每次循环将 current_spd 增加一个固定的加速度值，直到达到 target_spd 为止，并切换状态为 STATE_CRUISING；
+                    3. 注意在修改 current_spd 和 target_spd 时要使用互斥锁保护。
+                */
             default:
                 break;
         }
