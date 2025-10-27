@@ -28,7 +28,8 @@
         "*.inc": "c",
         "stdbool.h": "c",
         "optional": "c",
-        "functional": "c"
+        "functional": "c",
+        "encoder.h": "c"
     },
     "idf.flashType": "UART",
     "idf.portWin": "COM21"
