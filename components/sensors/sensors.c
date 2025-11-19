@@ -104,8 +104,9 @@ void sensor_trigger_task(void* pvParameters) {
             }          
             current_spd = set_motor_speed(target_spd);
             set_motor_direction(current_dir);
+            vTaskDelay(pdMS_TO_TICKS(3000));
 
-            if(current_status == STATE_LIMIT_STOPPED) {
+            if(current_status == STATE_LIMIT_STOPPED) { // 若在限位停止等待期间上位机发送启动命令，则不会进入
                 if(xSemaphoreTake(mutexHandle, portMAX_DELAY) == pdTRUE){
                     target_spd = MAX_RPM;
                     current_status = STATE_ACCELERATING;
@@ -123,6 +124,7 @@ void sensor_trigger_task(void* pvParameters) {
             }                      
             current_spd = set_motor_speed(target_spd);
             set_motor_direction(current_dir);
+            vTaskDelay(pdMS_TO_TICKS(3000));
 
             if(current_status == STATE_LIMIT_STOPPED) {
                 if(xSemaphoreTake(mutexHandle, portMAX_DELAY) == pdTRUE){
